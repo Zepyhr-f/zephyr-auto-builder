@@ -126,7 +126,9 @@ The gateway hides Hermes protocol details from the rest of the system.
 
 ### 4.5 Review Gateway
 
-Routes generated plans to a human reviewer over IM or another review channel.
+Routes generated plans to a human review channel.
+
+V1 uses a Web review page as the default approval entry point, with IM review added later if needed.
 
 The reviewer can:
 
@@ -134,7 +136,21 @@ The reviewer can:
 - reject
 - request revision
 
-### 4.6 Audit And Memory Store
+### 4.6 Admin Web
+
+V1 includes a separate lightweight React admin console for human interaction and system visibility.
+
+The admin console is responsible for:
+
+- showing task lists and task details
+- showing pending plans for review
+- providing approve, reject, and revise actions
+- showing execution logs and result summaries
+- showing overall system status and the currently running task
+
+The admin console is not the scheduler itself. It is the visualization and review surface for the orchestration service.
+
+### 4.7 Audit And Memory Store
 
 Persists:
 
@@ -276,13 +292,14 @@ But those capabilities remain disabled in V1.
 
 ## 9. Data Model
 
-V1 uses SQLite as the local persistence layer.
+V1 uses PostgreSQL as the persistence layer.
 
 This is appropriate because:
 
-- V1 has one service process
+- V1 has one core backend service process
 - execution concurrency is deliberately low
-- reliable local recovery matters more than horizontal scale
+- an existing PostgreSQL deployment is already available
+- V1 does not require high concurrency yet, but still benefits from a production-grade database
 
 Recommended core tables:
 
@@ -481,29 +498,44 @@ This recovery phase is required for a 24/7 service.
 
 Recommended V1 stack:
 
-- Python 3.11+
+- Python 3.12
+- `FastAPI`
 - `asyncio`
 - `aiohttp` or `httpx` for Hermes communication
-- SQLite
-- one IM integration for review delivery
+- PostgreSQL
+- `SQLAlchemy 2.x`
+- `Alembic`
+- `Pydantic v2`
+- separate `React` admin console
+- `Vite`
+- `Tailwind CSS + shadcn/ui`
 - Docker for deployment
 
 Rationale:
 
-- Python supports long-running async service patterns well
+- Python 3.12 is a strong fit for a long-running orchestration service
+- `FastAPI` is well suited for task, approval, status, and log APIs
 - `asyncio` matches the polling-oriented workflow
-- SQLite is enough for single-process V1 and simplifies deployment
+- PostgreSQL is a better long-term fit for a durable workflow system and future multi-worker expansion
+- `SQLAlchemy 2.x + Alembic` supports explicit data modeling and schema migration
+- `React + Vite` is a good fit for a lightweight but important admin console
+- `Tailwind CSS + shadcn/ui` supports fast iteration on review and operations screens
 - Docker provides stable runtime packaging and restart behavior
 
 ## 14. Deployment Model
 
 Recommended V1 deployment:
 
-- one container
-- one long-lived service process
-- persisted local database volume
+- one separate `backend` service
+- one separate `frontend` admin console
+- `backend` runs as the long-lived orchestration process
+- `backend` connects to an existing PostgreSQL deployment
 - persisted logs volume
-- `restart: always`
+- `backend` uses `restart: always`
+
+Recommended request path:
+
+`frontend -> backend API -> Hermes`
 
 If Hermes is deployed on the same host, prefer local or private network communication instead of exposing unnecessary public endpoints.
 
@@ -538,6 +570,7 @@ When local state says a task is executing but remote state is unknown, the syste
 - single execution worker
 - asynchronous Hermes planning lane
 - asynchronous Hermes execution lane
+- Web review page
 - human plan approval
 - full execution after approval
 
@@ -577,7 +610,8 @@ Its purpose is to manage:
 
 V1 intentionally optimizes for stability and clarity:
 
-- one service
+- one backend service
+- one lightweight frontend admin console
 - one queue
 - one execution worker
 - two Hermes interaction lanes
