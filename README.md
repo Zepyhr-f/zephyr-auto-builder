@@ -1,34 +1,34 @@
 # Hermes Orchestrator
 
-24/7 task orchestration and governance layer for Hermes.
+Hermes 的 24/7 任务编排与治理层。
 
-## What This Is
+## 这是什么
 
-This system is **not** Hermes itself. Hermes is an existing AI execution system (similar to OpenClaw). This project is the orchestration layer that:
+这个系统**不是** Hermes 本身。Hermes 是一个已有的 AI 执行系统（类似 OpenClaw）。本项目是围绕 Hermes 的编排层，负责：
 
-- runs continuously (24/7)
-- receives and accumulates tasks
-- manages workflow state and approvals
-- communicates with Hermes through asynchronous jobs
-- records logs, audit data, and recovery state
+- 持续运行（24/7）
+- 接收和积累任务
+- 管理工作流状态与审核
+- 通过异步任务与 Hermes 通信
+- 记录日志、审计数据和恢复状态
 
-Hermes is responsible for understanding concrete project work, generating plans, executing approved work, and delegating code authoring to Claude Code.
+Hermes 负责理解具体项目工作、生成计划、执行已批准的工作，并在需要编码时委托 Claude Code 完成代码编写。
 
-## Architecture
+## 架构
 
-- **Backend**: Python 3.12 + FastAPI + SQLAlchemy + PostgreSQL
-- **Frontend**: React + Vite + Tailwind CSS + TanStack Query
-- **Deployment**: Docker Compose
+- **后端**：Python 3.12 + FastAPI + SQLAlchemy + PostgreSQL
+- **前端**：React + Vite + Tailwind CSS + TanStack Query
+- **部署**：Docker Compose
 
-## Quick Start
+## 快速开始
 
-### Prerequisites
+### 前置条件
 
 - Python 3.12+
 - Node.js 22+
 - PostgreSQL 16+
 
-### Backend
+### 后端
 
 ```bash
 cd backend
@@ -36,12 +36,12 @@ python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -e '.[dev]'
 cp ../.env.example ../.env
-# edit .env with your PostgreSQL connection string
+# 编辑 .env，填入你的 PostgreSQL 连接字符串
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-### Frontend
+### 前端
 
 ```bash
 cd frontend
@@ -56,30 +56,30 @@ cp .env.example .env
 docker compose up --build
 ```
 
-## API Endpoints
+## API 接口
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Health check |
-| POST | `/api/v1/tasks` | Create a task |
-| GET | `/api/v1/tasks` | List tasks |
-| GET | `/api/v1/tasks/{id}` | Get task detail |
-| GET | `/api/v1/tasks/{id}/events` | Get task event log |
-| POST | `/api/v1/approvals` | Submit plan approval |
-| GET | `/api/v1/system/status` | System status |
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/health` | 健康检查 |
+| POST | `/api/v1/tasks` | 创建任务 |
+| GET | `/api/v1/tasks` | 任务列表 |
+| GET | `/api/v1/tasks/{id}` | 任务详情 |
+| GET | `/api/v1/tasks/{id}/events` | 任务事件日志 |
+| POST | `/api/v1/approvals` | 提交计划审核 |
+| GET | `/api/v1/system/status` | 系统状态 |
 
-## Task Lifecycle
+## 任务生命周期
 
-1. **New** - task created
-2. **Planning** - submitted to Hermes for plan generation
-3. **PendingApproval** - plan returned, awaiting human review
-4. **Approved** - plan approved, entering execution queue
-5. **Queued** - waiting for execution slot
-6. **Executing** - Hermes executing the approved plan
-7. **Succeeded / Failed / Rejected / Escalated** - terminal states
+1. **New** - 任务已创建
+2. **Planning** - 已提交给 Hermes 生成计划
+3. **PendingApproval** - 计划已返回，等待人工审核
+4. **Approved** - 计划已批准，进入执行队列
+5. **Queued** - 等待执行槽位
+6. **Executing** - Hermes 正在执行已批准的计划
+7. **Succeeded / Failed / Rejected / Escalated** - 终态
 
-## Design Docs
+## 设计文档
 
-- [English spec](docs/superpowers/specs/2026-06-22-hermes-orchestrator-design.md)
-- [Chinese spec](docs/superpowers/specs/2026-06-22-hermes-orchestrator-design.zh-CN.md)
-- [Implementation plan](docs/superpowers/plans/2026-06-22-hermes-orchestrator-implementation-plan.md)
+- [英文规格](docs/superpowers/specs/2026-06-22-hermes-orchestrator-design.md)
+- [中文规格](docs/superpowers/specs/2026-06-22-hermes-orchestrator-design.zh-CN.md)
+- [实现计划](docs/superpowers/plans/2026-06-22-hermes-orchestrator-implementation-plan.md)
