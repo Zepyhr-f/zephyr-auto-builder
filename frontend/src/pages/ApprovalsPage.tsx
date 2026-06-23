@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, type PendingPlan } from '../api/client'
+import { api, type PendingPlan, type PlanStep } from '../api/client'
 
 const taskTypeLabels: Record<string, string> = {
   requirement: '需求',
@@ -158,9 +158,30 @@ export function ApprovalsPage() {
                         <div>
                           <div className="mb-1.5 text-xs font-medium text-amber-glow">执行计划</div>
                           <div className="rounded-lg bg-base-950/50 p-4 ring-1 ring-base-800">
-                            <pre className="whitespace-pre-wrap text-sm leading-relaxed text-base-200">
-                              {plan.plan_text}
-                            </pre>
+                            {plan.plan_text && (
+                              <p className="mb-3 text-sm leading-relaxed text-base-200">{plan.plan_text}</p>
+                            )}
+                            {plan.plan_structured?.steps && plan.plan_structured.steps.length > 0 ? (
+                              <ol className="space-y-2">
+                                {plan.plan_structured.steps.map((step: PlanStep, idx: number) => (
+                                  <li key={idx} className="flex gap-3">
+                                    <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-amber-glow/15 text-xs font-medium text-amber-glow ring-1 ring-amber-glow/30">
+                                      {idx + 1}
+                                    </span>
+                                    <div className="flex-1">
+                                      <div className="text-sm font-medium text-base-100">{step.title}</div>
+                                      {step.detail && (
+                                        <p className="mt-0.5 text-xs leading-relaxed text-base-400">{step.detail}</p>
+                                      )}
+                                    </div>
+                                  </li>
+                                ))}
+                              </ol>
+                            ) : (
+                              <pre className="whitespace-pre-wrap text-sm leading-relaxed text-base-200">
+                                {plan.plan_text}
+                              </pre>
+                            )}
                           </div>
                         </div>
                         {plan.risk_summary && (

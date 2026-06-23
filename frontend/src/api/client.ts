@@ -37,6 +37,11 @@ export interface EventLog {
   created_at: string
 }
 
+export interface PlanStep {
+  title: string
+  detail: string
+}
+
 export interface PendingPlan {
   id: string
   task_id: string
@@ -44,6 +49,7 @@ export interface PendingPlan {
   task_type: string
   version: number
   plan_text: string
+  plan_structured: { steps?: PlanStep[] }
   risk_summary: string
   expected_outputs: string
   status: string

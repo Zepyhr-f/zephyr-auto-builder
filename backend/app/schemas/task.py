@@ -33,6 +33,7 @@ class PlanOut(BaseModel):
     task_id: UUID
     version: int
     plan_text: str
+    plan_structured: dict = {}
     risk_summary: str
     expected_outputs: str
     status: str

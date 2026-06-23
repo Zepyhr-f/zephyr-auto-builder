@@ -37,6 +37,7 @@ def _plan_to_dict(plan: Plan, task_title: str = "", task_type: str = "") -> dict
         "task_type": task_type,
         "version": plan.version,
         "plan_text": plan.plan_text,
+        "plan_structured": plan.plan_structured_json or {},
         "risk_summary": plan.risk_summary or "",
         "expected_outputs": str(plan.expected_outputs) if plan.expected_outputs else "",
         "status": plan.status.value if isinstance(plan.status, PlanStatus) else str(plan.status),
@@ -113,7 +114,7 @@ class DatabaseStore:
             )
             await session.commit()
 
-    async def add_plan(self, task_id: str, plan_text: str, risk_summary: str = "", expected_outputs: str = "") -> str:
+    async def add_plan(self, task_id: str, plan_text: str, risk_summary: str = "", expected_outputs: str = "", plan_structured: dict | None = None) -> str:
         plan_id = str(uuid.uuid4())
         async with await self._session() as session:
             version_result = await session.execute(
@@ -126,6 +127,7 @@ class DatabaseStore:
                 task_id=uuid.UUID(task_id),
                 version=version,
                 plan_text=plan_text,
+                plan_structured_json=plan_structured,
                 risk_summary=risk_summary,
                 expected_outputs=expected_outputs,
                 status=PlanStatus.PENDING_APPROVAL,
@@ -171,7 +173,7 @@ class DatabaseStore:
             "PendingApproval": PlanStatus.PENDING_APPROVAL,
             "Approved": PlanStatus.APPROVED,
             "Rejected": PlanStatus.REJECTED,
-            "Revised": PlanStatus.PENDING_APPROVAL,
+            "Revised": PlanStatus.SUPERSEDED,
         }
         plan_status = status_map.get(status, PlanStatus.PENDING_APPROVAL)
         async with await self._session() as session:

@@ -28,7 +28,7 @@ async def submit_approval(body: ApprovalCreate):
         await store.add_event(task_id, "plan_rejected", f"plan {plan_id} rejected")
     elif body.decision == "revise":
         await store.update_plan_status(plan_id, "Revised")
-        await store.update_task(task_id, status=TaskStatus.NEW.value)
+        await store.update_task(task_id, status=TaskStatus.PLANNING.value)
         await store.add_event(task_id, "plan_revised", f"plan {plan_id} revise requested: {body.review_comment}")
 
     return {"status": "accepted", "decision": body.decision}
