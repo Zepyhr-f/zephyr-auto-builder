@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session_factory
@@ -200,6 +200,28 @@ class DatabaseStore:
                 .order_by(EventLog.created_at.desc())
             )
             return [_event_to_dict(e) for e in result.scalars().all()]
+
+    async def get_task_status_counts(self) -> dict[str, int]:
+        async with await self._session() as session:
+            result = await session.execute(
+                select(Task.status, func.count(Task.id)).group_by(Task.status)
+            )
+            counts: dict[str, int] = {}
+            for status, count in result.all():
+                key = status.value if isinstance(status, TaskStatus) else str(status)
+                counts[key] = count
+            return counts
+
+    async def get_active_tasks(self, statuses: list[str]) -> list[dict]:
+        if not statuses:
+            return []
+        async with await self._session() as session:
+            status_enums = [TaskStatus(s) for s in statuses]
+            result = await session.execute(
+                select(Task).where(Task.status.in_(status_enums))
+                .order_by(Task.updated_at.desc()).limit(20)
+            )
+            return [_task_to_dict(t) for t in result.scalars().all()]
 
 
 store = DatabaseStore()

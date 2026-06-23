@@ -17,6 +17,7 @@ class TaskOut(BaseModel):
     id: UUID
     title: str
     source_type: str
+    source_payload: str = ""
     task_type: str
     status: str
     priority: int

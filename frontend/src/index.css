@@ -1,10 +1,11 @@
 @import "tailwindcss";
 
 @theme {
-  --color-base-950: #0a0a0b;
-  --color-base-900: #111113;
-  --color-base-850: #171719;
-  --color-base-800: #1c1c1f;
+  --color-base-950: #08080a;
+  --color-base-900: #0e0e11;
+  --color-base-850: #151518;
+  --color-base-800: #1a1a1e;
+  --color-base-750: #222226;
   --color-base-700: #2a2a2e;
   --color-base-600: #3a3a40;
   --color-base-500: #525258;
@@ -45,8 +46,8 @@
   }
 
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
   ::-webkit-scrollbar-track {
     background: var(--color-base-900);
@@ -64,23 +65,25 @@
   .glass-panel {
     background: linear-gradient(
       135deg,
-      rgba(28, 28, 31, 0.8) 0%,
-      rgba(17, 17, 19, 0.9) 100%
+      rgba(26, 26, 30, 0.9) 0%,
+      rgba(14, 14, 17, 0.95) 100%
     );
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     box-shadow:
       0 0 0 1px rgba(0, 0, 0, 0.5),
-      0 8px 32px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      0 4px 16px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+
+  .glass-subtle {
+    background: rgba(21, 21, 24, 0.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.04);
   }
 
   .glow-amber {
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
-  }
-
-  .glow-emerald {
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.12);
   }
 
   .text-glow-amber {
@@ -89,44 +92,32 @@
 
   .bg-grid {
     background-image:
-      linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-    background-size: 40px 40px;
+      linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+    background-size: 32px 32px;
   }
 
   .bg-radial-glow {
     background: radial-gradient(
-      ellipse 80% 50% at 50% -20%,
-      rgba(245, 158, 11, 0.08),
+      ellipse 60% 40% at 50% -10%,
+      rgba(245, 158, 11, 0.06),
       transparent
     );
   }
 }
 
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in-up {
-  animation: fadeInUp 0.4s ease-out forwards;
+  animation: fadeInUp 0.3s ease-out forwards;
 }
 
 @keyframes pulse-dot {
-  0%, 100% {
-    opacity: 1;
-    box-shadow: 0 0 8px currentColor;
-  }
-  50% {
-    opacity: 0.5;
-    box-shadow: 0 0 4px currentColor;
-  }
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px currentColor; }
+  50% { opacity: 0.5; box-shadow: 0 0 4px currentColor; }
 }
 
 .animate-pulse-dot {

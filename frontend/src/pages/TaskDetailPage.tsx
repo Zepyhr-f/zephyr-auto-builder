@@ -19,7 +19,7 @@ const lifecycleSteps = [
   { key: 'New', label: '创建' },
   { key: 'Planning', label: '规划' },
   { key: 'PendingApproval', label: '待审' },
-  { key: 'Approved', label: '已批准' },
+  { key: 'Approved', label: '批准' },
   { key: 'Queued', label: '排队' },
   { key: 'Executing', label: '执行' },
   { key: 'Succeeded', label: '完成' },
@@ -48,17 +48,17 @@ export function TaskDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="glass-panel h-12 animate-pulse rounded-xl" />
-        <div className="glass-panel h-64 animate-pulse rounded-xl" />
+      <div className="space-y-3">
+        <div className="glass-panel h-16 animate-pulse rounded-xl" />
+        <div className="glass-panel h-48 animate-pulse rounded-xl" />
       </div>
     )
   }
   if (!task) {
     return (
-      <div className="glass-panel rounded-xl p-16 text-center">
+      <div className="glass-panel rounded-xl p-12 text-center">
         <p className="text-base-400">任务未找到</p>
-        <Link to="/" className="mt-4 inline-block text-sm text-amber-glow hover:underline">返回任务列表</Link>
+        <Link to="/" className="mt-3 inline-block text-sm text-amber-glow hover:underline">返回任务列表</Link>
       </div>
     )
   }
@@ -70,47 +70,46 @@ export function TaskDetailPage() {
     { label: '类型', value: task.task_type },
     { label: '来源', value: task.source_type },
     { label: '优先级', value: String(task.priority) },
-    { label: '创建时间', value: new Date(task.created_at).toLocaleString('zh-CN') },
-    { label: '更新时间', value: new Date(task.updated_at).toLocaleString('zh-CN') },
+    { label: '创建', value: new Date(task.created_at).toLocaleString('zh-CN') },
+    { label: '更新', value: new Date(task.updated_at).toLocaleString('zh-CN') },
   ]
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-base-400 transition hover:text-base-100">
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          返回任务列表
-        </Link>
-      </div>
+    <div className="space-y-4">
+      <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-base-400 transition hover:text-base-100">
+        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        返回列表
+      </Link>
 
-      <div className="glass-panel rounded-2xl p-6">
+      {/* 任务头 + 生命周期 */}
+      <div className="glass-panel rounded-xl p-5">
         <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-xl font-bold tracking-tight text-base-100">{task.title}</h2>
-            <p className="mt-1 font-mono text-xs text-base-500">{task.id}</p>
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-lg font-bold tracking-tight text-base-100">{task.title}</h2>
+            <p className="mt-0.5 font-mono text-xs text-base-500">{task.id}</p>
           </div>
-          <span className={`inline-flex items-center gap-1.5 rounded-full ${cfg.bg} px-3 py-1 text-xs font-medium ${cfg.color} ring-1 ${cfg.ring}`}>
+          <span className={`ml-3 inline-flex flex-shrink-0 items-center gap-1.5 rounded-md ${cfg.bg} px-2.5 py-1 text-xs font-medium ${cfg.color} ring-1 ${cfg.ring}`}>
             <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot} ${(task.status === 'Executing' || task.status === 'Planning') ? 'animate-pulse-dot' : ''}`} style={{ color: cfg.dot.replace('bg-', '') }} />
             {task.status}
           </span>
         </div>
 
-        <div className="mt-6">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-medium text-base-400">生命周期</span>
-            <span className="font-mono text-xs text-base-500">{progress} / {lifecycleSteps.length}</span>
+        <div className="mt-4">
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-xs text-base-400">生命周期</span>
+            <span className="font-mono text-[10px] text-base-500">{progress}/{lifecycleSteps.length}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             {lifecycleSteps.map((step, i) => {
               const isDone = i < progress
               const isCurrent = i === progress - 1
               return (
                 <div key={step.key} className="flex flex-1 items-center">
-                  <div className="flex flex-col items-center gap-1.5">
+                  <div className="flex flex-col items-center gap-1">
                     <div
-                      className={`flex h-7 w-7 items-center justify-center rounded-full text-xs ring-1 transition ${
+                      className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] ring-1 transition ${
                         isDone
                           ? isCurrent
                             ? `${cfg.bg} ${cfg.color} ${cfg.ring}`
@@ -119,15 +118,15 @@ export function TaskDetailPage() {
                       }`}
                     >
                       {isDone && !isCurrent ? (
-                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                       ) : i + 1}
                     </div>
-                    <span className={`text-[10px] ${isDone ? 'text-base-200' : 'text-base-600'}`}>{step.label}</span>
+                    <span className={`text-[9px] ${isDone ? 'text-base-300' : 'text-base-600'}`}>{step.label}</span>
                   </div>
                   {i < lifecycleSteps.length - 1 && (
-                    <div className={`mx-1 h-px flex-1 ${i < progress - 1 ? 'bg-emerald-glow/30' : 'bg-base-700'}`} />
+                    <div className={`mx-0.5 h-px flex-1 ${i < progress - 1 ? 'bg-emerald-glow/30' : 'bg-base-700'}`} />
                   )}
                 </div>
               )
@@ -136,31 +135,40 @@ export function TaskDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="glass-panel rounded-2xl p-6">
-          <h3 className="mb-4 text-sm font-medium text-base-200">任务信息</h3>
-          <dl className="space-y-3">
+      {/* 双栏信息 */}
+      <div className="grid gap-3 lg:grid-cols-5">
+        <div className="glass-panel rounded-xl p-4 lg:col-span-3">
+          <h3 className="mb-3 text-xs font-medium text-base-300">任务信息</h3>
+          <dl className="space-y-2">
             {infoItems.map(item => (
-              <div key={item.label} className="flex items-center justify-between border-b border-base-850 pb-2 last:border-0">
+              <div key={item.label} className="flex items-center justify-between border-b border-base-850 pb-1.5 last:border-0">
                 <dt className="text-xs text-base-500">{item.label}</dt>
-                <dd className="font-mono text-sm text-base-200">{item.value}</dd>
+                <dd className="font-mono text-xs text-base-200">{item.value}</dd>
               </div>
             ))}
           </dl>
+          {task.source_payload && (
+            <div className="mt-3">
+              <div className="mb-1 text-xs text-base-500">正文</div>
+              <div className="rounded-lg bg-base-950/50 p-2.5 ring-1 ring-base-800">
+                <p className="whitespace-pre-wrap text-xs leading-relaxed text-base-200">{task.source_payload}</p>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="glass-panel rounded-2xl p-6">
-          <h3 className="mb-4 text-sm font-medium text-base-200">关联计划</h3>
-          <div className="space-y-3">
+        <div className="glass-panel rounded-xl p-4 lg:col-span-2">
+          <h3 className="mb-3 text-xs font-medium text-base-300">关联计划</h3>
+          <div className="space-y-2">
             <div>
               <div className="mb-1 text-xs text-base-500">当前计划</div>
-              <div className="rounded-lg bg-base-850 px-3 py-2 font-mono text-xs text-base-300 ring-1 ring-base-700">
+              <div className="rounded-lg bg-base-850 px-2.5 py-1.5 font-mono text-xs text-base-300 ring-1 ring-base-700">
                 {task.current_plan_id || '暂无'}
               </div>
             </div>
             <div>
               <div className="mb-1 text-xs text-base-500">已批准计划</div>
-              <div className={`rounded-lg px-3 py-2 font-mono text-xs ring-1 ${
+              <div className={`rounded-lg px-2.5 py-1.5 font-mono text-xs ring-1 ${
                 task.approved_plan_id
                   ? 'bg-emerald-glow/10 text-emerald-glow ring-emerald-glow/30'
                   : 'bg-base-850 text-base-500 ring-base-700'
@@ -172,37 +180,33 @@ export function TaskDetailPage() {
         </div>
       </div>
 
-      <div className="glass-panel rounded-2xl p-6">
-        <h3 className="mb-4 text-sm font-medium text-base-200">事件日志</h3>
+      {/* 事件日志 */}
+      <div className="glass-panel rounded-xl p-4">
+        <h3 className="mb-3 text-xs font-medium text-base-300">事件日志</h3>
         {eventsData?.events && eventsData.events.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {eventsData.events.map((event, i) => (
-              <div key={event.id} className="flex gap-4">
+              <div key={event.id} className="flex gap-3">
                 <div className="flex flex-col items-center">
-                  <div className="h-2 w-2 rounded-full bg-amber-glow" />
+                  <div className="h-1.5 w-1.5 rounded-full bg-amber-glow" />
                   {i < eventsData.events.length - 1 && <div className="w-px flex-1 bg-base-700" />}
                 </div>
-                <div className="flex-1 pb-4">
+                <div className="flex-1 pb-2">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs font-medium text-amber-glow">{event.event_type}</span>
-                    <span className="font-mono text-xs text-base-500">
+                    <span className="font-mono text-[10px] text-base-500">
                       {new Date(event.created_at).toLocaleString('zh-CN')}
                     </span>
                   </div>
                   {event.event_payload && (
-                    <p className="mt-1 text-xs text-base-400">{event.event_payload}</p>
+                    <p className="mt-0.5 text-xs text-base-400">{event.event_payload}</p>
                   )}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="flex items-center gap-2 py-4 text-sm text-base-500">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            暂无事件记录
-          </div>
+          <p className="py-2 text-sm text-base-500">暂无事件记录</p>
         )}
       </div>
     </div>

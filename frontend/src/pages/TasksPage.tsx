@@ -19,15 +19,16 @@ const statusConfig: Record<string, { color: string; bg: string; ring: string; do
 const taskTypeLabels: Record<string, string> = {
   requirement: '需求',
   document: '文档',
-  bug: 'Bug 巡检',
+  bug: 'Bug',
   optimization: '优化',
 }
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = statusConfig[status] || statusConfig.Queued
+  const pulse = status === 'Executing' || status === 'Planning'
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full ${cfg.bg} px-2.5 py-1 text-xs font-medium ${cfg.color} ring-1 ${cfg.ring}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot} ${(status === 'Executing' || status === 'Planning') ? 'animate-pulse-dot' : ''}`} style={{ color: cfg.dot.replace('bg-', '') }} />
+    <span className={`inline-flex items-center gap-1.5 rounded-md ${cfg.bg} px-2 py-0.5 text-xs font-medium ${cfg.color} ring-1 ${cfg.ring}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot} ${pulse ? 'animate-pulse-dot' : ''}`} style={{ color: cfg.dot.replace('bg-', '') }} />
       {status}
     </span>
   )
@@ -36,11 +37,11 @@ function StatusBadge({ status }: { status: string }) {
 function CreateTaskModal({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient()
   const [title, setTitle] = useState('')
+  const [body, setBody] = useState('')
   const [taskType, setTaskType] = useState('requirement')
-  const [source, setSource] = useState('human')
 
   const mutation = useMutation({
-    mutationFn: () => api.createTask({ title, task_type: taskType, source_type: source }),
+    mutationFn: () => api.createTask({ title, source_payload: body, task_type: taskType }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
       onClose()
@@ -49,48 +50,44 @@ function CreateTaskModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="glass-panel w-full max-w-md rounded-2xl p-6" onClick={e => e.stopPropagation()}>
+      <div className="glass-panel w-full max-w-lg rounded-2xl p-5" onClick={e => e.stopPropagation()}>
         <h3 className="mb-4 text-base font-medium text-base-100">新建任务</h3>
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-base-400">标题</label>
+            <label className="mb-1 block text-xs font-medium text-base-400">标题</label>
             <input
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
               className="w-full rounded-lg bg-base-850 px-3 py-2 text-sm text-base-100 ring-1 ring-base-700 focus:ring-2 focus:ring-amber-glow/50 focus:outline-none"
-              placeholder="描述任务目标..."
+              placeholder="简要描述任务目标..."
               autoFocus
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-base-400">类型</label>
-              <select
-                value={taskType}
-                onChange={e => setTaskType(e.target.value)}
-                className="w-full rounded-lg bg-base-850 px-3 py-2 text-sm text-base-100 ring-1 ring-base-700 focus:ring-2 focus:ring-amber-glow/50 focus:outline-none"
-              >
-                <option value="requirement">需求</option>
-                <option value="document">文档</option>
-                <option value="bug">Bug 巡检</option>
-                <option value="optimization">优化</option>
-              </select>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-base-400">来源</label>
-              <select
-                value={source}
-                onChange={e => setSource(e.target.value)}
-                className="w-full rounded-lg bg-base-850 px-3 py-2 text-sm text-base-100 ring-1 ring-base-700 focus:ring-2 focus:ring-amber-glow/50 focus:outline-none"
-              >
-                <option value="human">人工</option>
-                <option value="hermes">Hermes</option>
-                <option value="scheduled">定时</option>
-              </select>
-            </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-base-400">正文</label>
+            <textarea
+              value={body}
+              onChange={e => setBody(e.target.value)}
+              className="w-full rounded-lg bg-base-850 px-3 py-2 text-sm text-base-100 ring-1 ring-base-700 focus:ring-2 focus:ring-amber-glow/50 focus:outline-none"
+              rows={5}
+              placeholder="详细描述任务背景、需求、验收标准等..."
+            />
           </div>
-          <div className="flex gap-3 pt-2">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-base-400">类型</label>
+            <select
+              value={taskType}
+              onChange={e => setTaskType(e.target.value)}
+              className="w-full rounded-lg bg-base-850 px-3 py-2 text-sm text-base-100 ring-1 ring-base-700 focus:ring-2 focus:ring-amber-glow/50 focus:outline-none"
+            >
+              <option value="requirement">需求</option>
+              <option value="document">文档</option>
+              <option value="bug">Bug 巡检</option>
+              <option value="optimization">优化</option>
+            </select>
+          </div>
+          <div className="flex gap-2 pt-1">
             <button
               onClick={() => mutation.mutate()}
               disabled={!title.trim() || mutation.isPending}
@@ -124,97 +121,101 @@ export function TasksPage() {
     return acc
   }, {} as Record<string, number>) || {}
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-end justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-base-100">任务队列</h2>
-          <p className="mt-1 text-sm text-base-400">管理和监控所有 Hermes 执行任务</p>
-        </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 rounded-lg bg-amber-glow/90 px-4 py-2 text-sm font-medium text-base-950 transition hover:bg-amber-glow glow-amber"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          新建任务
-        </button>
-      </div>
+  const stats = [
+    { label: '待规划', key: 'New', color: 'text-sky-glow', dot: 'bg-sky-glow' },
+    { label: '执行中', key: 'Executing', color: 'text-violet-glow', dot: 'bg-violet-glow' },
+    { label: '待审核', key: 'PendingApproval', color: 'text-amber-soft', dot: 'bg-amber-soft' },
+    { label: '已完成', key: 'Succeeded', color: 'text-emerald-glow', dot: 'bg-emerald-glow' },
+  ]
 
+  return (
+    <div className="space-y-4">
+      {/* 统计卡片 - 紧凑四列 */}
       <div className="grid grid-cols-4 gap-3">
-        {[
-          { label: '待规划', key: 'New', color: 'text-sky-glow' },
-          { label: '执行中', key: 'Executing', color: 'text-violet-glow' },
-          { label: '待审核', key: 'PendingApproval', color: 'text-amber-soft' },
-          { label: '已完成', key: 'Succeeded', color: 'text-emerald-glow' },
-        ].map(stat => (
-          <div key={stat.key} className="glass-panel rounded-xl p-4">
+        {stats.map(stat => (
+          <div key={stat.key} className="glass-panel rounded-xl p-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-base-400">{stat.label}</span>
-              <span className={`h-2 w-2 rounded-full ${stat.color.replace('text-', 'bg-')}`} />
+              <span className="text-xs text-base-400">{stat.label}</span>
+              <span className={`h-1.5 w-1.5 rounded-full ${stat.dot}`} />
             </div>
-            <p className={`mt-2 font-mono text-2xl font-bold ${stat.color}`}>
+            <p className={`mt-1 font-mono text-xl font-bold ${stat.color}`}>
               {statusCounts[stat.key] || 0}
             </p>
           </div>
         ))}
       </div>
 
-      {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="glass-panel h-16 animate-pulse rounded-xl" />
-          ))}
-        </div>
-      ) : tasks && tasks.length === 0 ? (
-        <div className="glass-panel rounded-xl p-16 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-base-800">
-            <svg className="h-6 w-6 text-base-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
+      {/* 任务列表 */}
+      <div className="glass-panel overflow-hidden rounded-xl">
+        <div className="flex items-center justify-between border-b border-base-800 px-4 py-2.5">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-medium text-base-200">任务列表</h3>
+            <span className="rounded-full bg-base-800 px-2 py-0.5 text-xs text-base-400">
+              {tasks?.length || 0}
+            </span>
           </div>
-          <p className="text-sm text-base-400">还没有任务，点击"新建任务"开始</p>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-1.5 rounded-lg bg-amber-glow/90 px-3 py-1.5 text-xs font-medium text-base-950 transition hover:bg-amber-glow glow-amber"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            新建任务
+          </button>
         </div>
-      ) : (
-        <div className="glass-panel overflow-hidden rounded-xl">
+
+        {isLoading ? (
+          <div className="space-y-1">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-12 animate-pulse bg-base-850/50" />
+            ))}
+          </div>
+        ) : tasks && tasks.length === 0 ? (
+          <div className="px-4 py-12 text-center">
+            <p className="text-sm text-base-400">还没有任务，点击"新建任务"开始</p>
+          </div>
+        ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-base-800 text-left">
-                <th className="px-4 py-3 font-medium text-base-400">任务</th>
-                <th className="px-4 py-3 font-medium text-base-400">状态</th>
-                <th className="px-4 py-3 font-medium text-base-400">类型</th>
-                <th className="px-4 py-3 font-medium text-base-400">来源</th>
-                <th className="px-4 py-3 font-medium text-base-400">创建时间</th>
+              <tr className="border-b border-base-800 text-left text-xs">
+                <th className="px-4 py-2 font-medium text-base-500">任务</th>
+                <th className="px-4 py-2 font-medium text-base-500">状态</th>
+                <th className="px-4 py-2 font-medium text-base-500">类型</th>
+                <th className="px-4 py-2 font-medium text-base-500">来源</th>
+                <th className="px-4 py-2 font-medium text-base-500">创建时间</th>
               </tr>
             </thead>
             <tbody>
-              {tasks?.map((task: Task, i: number) => (
+              {tasks?.map((task: Task) => (
                 <tr
                   key={task.id}
-                  className="group border-b border-base-850 transition hover:bg-base-850/50"
-                  style={{ animationDelay: `${i * 30}ms` }}
+                  className="group border-b border-base-850 transition hover:bg-base-850/40"
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2.5">
                     <Link to={`/tasks/${task.id}`} className="font-medium text-base-100 transition group-hover:text-amber-glow">
                       {task.title}
                     </Link>
-                    <div className="mt-0.5 font-mono text-xs text-base-600">{task.id.slice(0, 8)}</div>
+                    <div className="mt-0.5 font-mono text-[10px] text-base-600">{task.id.slice(0, 8)}</div>
                   </td>
-                  <td className="px-4 py-3"><StatusBadge status={task.status} /></td>
-                  <td className="px-4 py-3 text-base-300">{taskTypeLabels[task.task_type] || task.task_type}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2.5"><StatusBadge status={task.status} /></td>
+                  <td className="px-4 py-2.5">
+                    <span className="rounded bg-base-750/50 px-1.5 py-0.5 text-xs text-base-300">
+                      {taskTypeLabels[task.task_type] || task.task_type}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5">
                     <span className="font-mono text-xs text-base-400">{task.source_type}</span>
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-base-500">
-                    {new Date(task.created_at).toLocaleString('zh-CN')}
+                  <td className="px-4 py-2.5 font-mono text-xs text-base-500">
+                    {new Date(task.created_at).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </div>
 
       {showCreate && <CreateTaskModal onClose={() => setShowCreate(false)} />}
     </div>

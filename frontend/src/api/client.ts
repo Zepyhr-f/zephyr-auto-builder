@@ -15,6 +15,7 @@ export interface Task {
   id: string
   title: string
   source_type: string
+  source_payload: string
   task_type: string
   status: string
   priority: number
@@ -27,6 +28,29 @@ export interface Task {
 export interface SystemStatus {
   status: string
   version: string
+}
+
+export interface ActiveTask {
+  id: string
+  title: string
+  status: string
+}
+
+export interface SystemComponent {
+  id: string
+  name: string
+  desc: string
+  online: boolean
+  metrics: Record<string, number>
+  active_tasks?: ActiveTask[]
+}
+
+export interface SystemComponents {
+  status: string
+  version: string
+  task_counts: Record<string, number>
+  total_tasks: number
+  components: SystemComponent[]
 }
 
 export interface EventLog {
@@ -61,8 +85,8 @@ export const api = {
   listTasks: () => request<Task[]>('/tasks'),
   getTask: (id: string) => request<Task>(`/tasks/${id}`),
   getTaskEvents: (id: string) => request<{ task_id: string; events: EventLog[] }>(`/tasks/${id}/events`),
-  createTask: (data: { title: string; source_type?: string; task_type?: string }) =>
-    request<Task>('/tasks', { method: 'POST', body: JSON.stringify(data) }),
+  createTask: (data: { title: string; source_payload?: string; task_type?: string }) =>
+    request<Task>('/tasks', { method: 'POST', body: JSON.stringify({ ...data, source_type: 'human' }) }),
   listPendingPlans: () => request<PendingPlan[]>('/plans/pending'),
   submitApproval: (data: { plan_id: string; decision: string; review_comment?: string }) =>
     request<{ status: string; decision: string }>('/approvals', {
@@ -70,4 +94,5 @@ export const api = {
       body: JSON.stringify(data),
     }),
   getSystemStatus: () => request<SystemStatus>('/system/status'),
+  getSystemComponents: () => request<SystemComponents>('/system/components'),
 }

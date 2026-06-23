@@ -12,6 +12,90 @@ from app.core.config import get_settings
 logger = logging.getLogger(__name__)
 
 
+def _extract_json(raw: str) -> dict | None:
+    """从 LLM 输出中提取第一个合法 JSON 对象。
+
+    处理常见异常：重复输出两遍、markdown 代码块包裹、前后多余文字。
+    """
+    text = raw.strip()
+
+    # 去掉 markdown 代码块
+    if text.startswith("```"):
+        lines = text.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip().startswith("```"):
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+
+    # 直接解析
+    try:
+        obj = json.loads(text)
+        return obj if isinstance(obj, dict) else None
+    except json.JSONDecodeError:
+        pass
+
+    # 用 raw_decode 提取第一个 JSON 对象（忽略后续重复/多余内容）
+    decoder = json.JSONDecoder()
+    for start in range(len(text)):
+        if text[start] != "{":
+            continue
+        try:
+            obj, _ = decoder.raw_decode(text[start:])
+            if isinstance(obj, dict):
+                return obj
+        except json.JSONDecodeError:
+            continue
+
+    return None
+
+
+def _to_str(val: Any) -> str:
+    """确保值为字符串。dict/list 转 JSON 文本，None 转空串。"""
+    if val is None:
+        return ""
+    if isinstance(val, str):
+        return val
+    if isinstance(val, (dict, list)):
+        return json.dumps(val, ensure_ascii=False)
+    return str(val)
+
+
+def _sanitize_plan(parsed: dict) -> dict:
+    """校验并清洗 plan 数据，确保所有字段类型正确。"""
+    steps_raw = parsed.get("steps", [])
+    if not isinstance(steps_raw, list):
+        steps_raw = []
+
+    steps = []
+    for s in steps_raw:
+        if not isinstance(s, dict):
+            continue
+        title = _to_str(s.get("title", "")).strip()
+        detail = _to_str(s.get("detail", "")).strip()
+        if not title:
+            continue
+        steps.append({"title": title, "detail": detail})
+
+    return {
+        "plan_text": _to_str(parsed.get("plan_text", "")).strip(),
+        "steps": steps,
+        "risk_summary": _to_str(parsed.get("risk_summary", "")).strip(),
+        "expected_outputs": _to_str(parsed.get("expected_outputs", "")).strip(),
+    }
+
+
+def _sanitize_execution(parsed: dict) -> dict:
+    """校验并清洗 execution 结果。"""
+    status = _to_str(parsed.get("status", "succeeded")).strip().lower()
+    if status not in ("succeeded", "failed"):
+        status = "succeeded"
+    return {
+        "status": status,
+        "result_summary": _to_str(parsed.get("result_summary", "")).strip(),
+    }
+
+
 class HermesPlanResult(BaseModel):
     job_id: str
     plan_text: str
@@ -76,17 +160,19 @@ class HermesGateway:
         raw = await self._chat(messages, temperature=0.3)
         logger.info("hermes returned plan for task %s (len=%d)", task_id, len(raw))
 
-        try:
-            parsed = json.loads(raw)
-        except json.JSONDecodeError:
+        parsed = _extract_json(raw)
+        if parsed is None:
+            logger.warning("failed to parse plan JSON for task %s, using raw text", task_id)
             parsed = {"plan_text": raw, "steps": [], "risk_summary": "", "expected_outputs": ""}
+
+        clean = _sanitize_plan(parsed)
 
         return {
             "job_id": f"plan-{task_id}",
-            "plan_text": parsed.get("plan_text", ""),
-            "steps": parsed.get("steps", []),
-            "risk_summary": parsed.get("risk_summary", ""),
-            "expected_outputs": parsed.get("expected_outputs", ""),
+            "plan_text": clean["plan_text"],
+            "steps": clean["steps"],
+            "risk_summary": clean["risk_summary"],
+            "expected_outputs": clean["expected_outputs"],
         }
 
     async def submit_execution(self, task_id: str, approved_plan_snapshot: dict) -> dict:
@@ -117,15 +203,17 @@ class HermesGateway:
         raw = await self._chat(messages, temperature=0.2)
         logger.info("hermes returned execution result for task %s", task_id)
 
-        try:
-            parsed = json.loads(raw)
-        except json.JSONDecodeError:
+        parsed = _extract_json(raw)
+        if parsed is None:
+            logger.warning("failed to parse execution JSON for task %s, using raw text", task_id)
             parsed = {"status": "succeeded", "result_summary": raw}
+
+        clean = _sanitize_execution(parsed)
 
         return {
             "job_id": f"exec-{task_id}",
-            "status": parsed.get("status", "succeeded"),
-            "result_summary": parsed.get("result_summary", raw),
+            "status": clean["status"],
+            "result_summary": clean["result_summary"],
         }
 
     async def close(self):
