@@ -37,12 +37,27 @@ export interface EventLog {
   created_at: string
 }
 
+export interface PendingPlan {
+  id: string
+  task_id: string
+  task_title: string
+  task_type: string
+  version: number
+  plan_text: string
+  risk_summary: string
+  expected_outputs: string
+  status: string
+  created_by: string
+  created_at: string
+}
+
 export const api = {
   listTasks: () => request<Task[]>('/tasks'),
   getTask: (id: string) => request<Task>(`/tasks/${id}`),
   getTaskEvents: (id: string) => request<{ task_id: string; events: EventLog[] }>(`/tasks/${id}/events`),
   createTask: (data: { title: string; source_type?: string; task_type?: string }) =>
     request<Task>('/tasks', { method: 'POST', body: JSON.stringify(data) }),
+  listPendingPlans: () => request<PendingPlan[]>('/plans/pending'),
   submitApproval: (data: { plan_id: string; decision: string; review_comment?: string }) =>
     request<{ status: string; decision: string }>('/approvals', {
       method: 'POST',

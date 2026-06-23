@@ -1,190 +1,241 @@
 import { useState } from 'react'
-import { api } from '../api/client'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { api, type PendingPlan } from '../api/client'
 
-const decisionConfig = {
-  approve: {
-    label: '批准',
-    desc: '通过计划，进入执行队列',
-    color: 'text-emerald-glow',
-    bg: 'bg-emerald-glow/10',
-    ring: 'ring-emerald-glow/30',
-    btn: 'bg-emerald-glow/90 hover:bg-emerald-glow text-base-950',
-    icon: 'M5 13l4 4L19 7',
-  },
-  reject: {
-    label: '拒绝',
-    desc: '终止该计划',
-    color: 'text-rose-glow',
-    bg: 'bg-rose-glow/10',
-    ring: 'ring-rose-glow/30',
-    btn: 'bg-rose-glow/90 hover:bg-rose-glow text-base-950',
-    icon: 'M6 18L18 6M6 6l12 12',
-  },
-  revise: {
-    label: '修改',
-    desc: '退回重新规划',
-    color: 'text-amber-glow',
-    bg: 'bg-amber-glow/10',
-    ring: 'ring-amber-glow/30',
-    btn: 'bg-amber-glow/90 hover:bg-amber-glow text-base-950',
-    icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z',
-  },
+const taskTypeLabels: Record<string, string> = {
+  requirement: '需求',
+  document: '文档',
+  bug: 'Bug 巡检',
+  optimization: '优化',
 }
 
 export function ApprovalsPage() {
-  const [planId, setPlanId] = useState('')
+  const queryClient = useQueryClient()
+  const { data: plans, isLoading } = useQuery({
+    queryKey: ['pending-plans'],
+    queryFn: api.listPendingPlans,
+    refetchInterval: 5000,
+  })
+
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [decision, setDecision] = useState<'approve' | 'reject' | 'revise'>('approve')
   const [comment, setComment] = useState('')
   const [result, setResult] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
 
-  const submit = async () => {
-    if (!planId) {
-      setError('请输入 Plan ID')
-      return
-    }
-    try {
-      const res = await api.submitApproval({ plan_id: planId, decision, review_comment: comment })
-      setResult(`已提交：${res.status}（${res.decision}）`)
-      setError(null)
+  const mutation = useMutation({
+    mutationFn: (data: { plan_id: string; decision: string; review_comment?: string }) =>
+      api.submitApproval(data),
+    onSuccess: (res, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['pending-plans'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      setResult(`计划已${vars.decision === 'approve' ? '批准' : vars.decision === 'reject' ? '拒绝' : '退回修改'}`)
+      setExpandedId(null)
       setComment('')
-    } catch (e) {
-      setError(String(e))
-      setResult(null)
-    }
+      setTimeout(() => setResult(null), 3000)
+    },
+  })
+
+  const handleSubmit = (planId: string) => {
+    mutation.mutate({ plan_id: planId, decision, review_comment: comment })
   }
 
-  const cfg = decisionConfig[decision]
+  const decisionButtons = [
+    {
+      key: 'approve' as const,
+      label: '批准',
+      color: 'text-emerald-glow',
+      bg: 'bg-emerald-glow/10',
+      ring: 'ring-emerald-glow/30',
+      btn: 'bg-emerald-glow/90 hover:bg-emerald-glow text-base-950',
+      icon: 'M5 13l4 4L19 7',
+    },
+    {
+      key: 'reject' as const,
+      label: '拒绝',
+      color: 'text-rose-glow',
+      bg: 'bg-rose-glow/10',
+      ring: 'ring-rose-glow/30',
+      btn: 'bg-rose-glow/90 hover:bg-rose-glow text-base-950',
+      icon: 'M6 18L18 6M6 6l12 12',
+    },
+    {
+      key: 'revise' as const,
+      label: '修改',
+      color: 'text-amber-glow',
+      bg: 'bg-amber-glow/10',
+      ring: 'ring-amber-glow/30',
+      btn: 'bg-amber-glow/90 hover:bg-amber-glow text-base-950',
+      icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z',
+    },
+  ]
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-base-100">计划审核</h2>
-        <p className="mt-1 text-sm text-base-400">审核 Hermes 生成的执行计划</p>
+      <div className="flex items-end justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-base-100">计划审核</h2>
+          <p className="mt-1 text-sm text-base-400">
+            审核 Hermes 生成的执行计划
+            {plans && plans.length > 0 && (
+              <span className="ml-2 rounded-full bg-amber-glow/10 px-2 py-0.5 text-xs text-amber-glow ring-1 ring-amber-glow/30">
+                {plans.length} 待审
+              </span>
+            )}
+          </p>
+        </div>
+        {result && (
+          <span className="flex items-center gap-2 text-sm text-emerald-glow">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            {result}
+          </span>
+        )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <div className="glass-panel rounded-2xl p-6">
-          <div className="mb-6">
-            <label className="mb-2 block text-xs font-medium text-base-400">Plan ID</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={planId}
-                onChange={e => setPlanId(e.target.value)}
-                className="w-full rounded-lg bg-base-850 px-3 py-2.5 font-mono text-sm text-base-100 ring-1 ring-base-700 focus:ring-2 focus:ring-amber-glow/50 focus:outline-none"
-                placeholder="输入计划 UUID..."
-              />
-              {planId && (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-xs text-base-600">
-                  {planId.length} chars
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <label className="mb-3 block text-xs font-medium text-base-400">审核决策</label>
-            <div className="grid grid-cols-3 gap-3">
-              {(Object.keys(decisionConfig) as Array<keyof typeof decisionConfig>).map(key => {
-                const d = decisionConfig[key]
-                const isActive = decision === key
-                return (
-                  <button
-                    key={key}
-                    onClick={() => setDecision(key)}
-                    className={`rounded-xl p-4 text-left ring-1 transition ${
-                      isActive
-                        ? `${d.bg} ${d.color} ${d.ring}`
-                        : 'bg-base-850/50 text-base-400 ring-base-700 hover:bg-base-850'
-                    }`}
-                  >
-                    <svg className="mb-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d={d.icon} />
-                    </svg>
-                    <div className="text-sm font-medium">{d.label}</div>
-                    <div className="mt-0.5 text-xs text-base-500">{d.desc}</div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <label className="mb-2 block text-xs font-medium text-base-400">审核意见</label>
-            <textarea
-              value={comment}
-              onChange={e => setComment(e.target.value)}
-              className="w-full rounded-lg bg-base-850 px-3 py-2.5 text-sm text-base-100 ring-1 ring-base-700 focus:ring-2 focus:ring-amber-glow/50 focus:outline-none"
-              rows={4}
-              placeholder={decision === 'revise' ? '输入修改建议...' : '可选，输入审核意见...'}
-            />
-          </div>
-
-          <div className="flex items-center gap-4">
-            <button
-              onClick={submit}
-              disabled={!planId.trim()}
-              className={`rounded-lg px-6 py-2.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${cfg.btn}`}
-            >
-              提交审核
-            </button>
-            {result && (
-              <span className="flex items-center gap-2 text-sm text-emerald-glow">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                {result}
-              </span>
-            )}
-            {error && (
-              <span className="flex items-center gap-2 text-sm text-rose-glow">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                {error}
-              </span>
-            )}
-          </div>
-        </div>
-
+      {isLoading ? (
         <div className="space-y-3">
-          <div className={`glass-panel rounded-2xl p-5 ${cfg.bg} ${cfg.ring} ring-1`}>
-            <div className="mb-3 flex items-center gap-2">
-              <svg className={`h-5 w-5 ${cfg.color}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d={cfg.icon} />
-              </svg>
-              <span className={`text-sm font-medium ${cfg.color}`}>{cfg.label}</span>
-            </div>
-            <p className="text-xs leading-relaxed text-base-400">{cfg.desc}</p>
-          </div>
-
-          <div className="glass-panel rounded-2xl p-5">
-            <h3 className="mb-3 text-xs font-medium text-base-400">审核流程</h3>
-            <div className="space-y-3">
-              {[
-                { step: '1', label: 'Hermes 生成计划', done: true },
-                { step: '2', label: '人工审核计划', done: true },
-                { step: '3', label: '提交审核决策', done: false },
-                { step: '4', label: '进入执行队列', done: false },
-              ].map(s => (
-                <div key={s.step} className="flex items-center gap-3">
-                  <div className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${
-                    s.done ? 'bg-emerald-glow/15 text-emerald-glow' : 'bg-base-800 text-base-500'
-                  }`}>
-                    {s.done ? (
-                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : s.step}
-                  </div>
-                  <span className={`text-sm ${s.done ? 'text-base-200' : 'text-base-500'}`}>{s.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          {[1, 2].map(i => (
+            <div key={i} className="glass-panel h-24 animate-pulse rounded-xl" />
+          ))}
         </div>
-      </div>
+      ) : plans && plans.length === 0 ? (
+        <div className="glass-panel rounded-xl p-16 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-base-800">
+            <svg className="h-6 w-6 text-base-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-sm text-base-400">暂无待审核计划</p>
+          <p className="mt-1 text-xs text-base-600">Hermes 生成计划后会出现在这里</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {plans?.map((plan: PendingPlan, i: number) => {
+            const isExpanded = expandedId === plan.id
+            return (
+              <div
+                key={plan.id}
+                className="glass-panel overflow-hidden rounded-xl"
+                style={{ animationDelay: `${i * 30}ms` }}
+              >
+                <button
+                  onClick={() => setExpandedId(isExpanded ? null : plan.id)}
+                  className="flex w-full items-center justify-between px-5 py-4 text-left transition hover:bg-base-850/50"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-glow/10 ring-1 ring-amber-glow/30">
+                      <svg className="h-5 w-5 text-amber-glow" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-base-100">{plan.task_title}</span>
+                        <span className="rounded bg-base-700/50 px-1.5 py-0.5 text-xs text-base-400">
+                          {taskTypeLabels[plan.task_type] || plan.task_type}
+                        </span>
+                      </div>
+                      <div className="mt-0.5 font-mono text-xs text-base-500">
+                        plan v{plan.version} · {plan.id.slice(0, 8)} · {new Date(plan.created_at).toLocaleString('zh-CN')}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="rounded-full bg-amber-glow/10 px-2.5 py-1 text-xs text-amber-glow ring-1 ring-amber-glow/30">
+                      待审核
+                    </span>
+                    <svg className={`h-4 w-4 text-base-500 transition ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </button>
+
+                {isExpanded && (
+                  <div className="border-t border-base-800 px-5 py-5">
+                    <div className="grid gap-4 lg:grid-cols-3">
+                      <div className="lg:col-span-2 space-y-4">
+                        <div>
+                          <div className="mb-1.5 text-xs font-medium text-amber-glow">执行计划</div>
+                          <div className="rounded-lg bg-base-950/50 p-4 ring-1 ring-base-800">
+                            <pre className="whitespace-pre-wrap text-sm leading-relaxed text-base-200">
+                              {plan.plan_text}
+                            </pre>
+                          </div>
+                        </div>
+                        {plan.risk_summary && (
+                          <div>
+                            <div className="mb-1.5 text-xs font-medium text-rose-glow">风险提示</div>
+                            <p className="rounded-lg bg-rose-glow/5 p-3 text-sm text-base-300 ring-1 ring-rose-glow/20">
+                              {plan.risk_summary}
+                            </p>
+                          </div>
+                        )}
+                        {plan.expected_outputs && (
+                          <div>
+                            <div className="mb-1.5 text-xs font-medium text-emerald-glow">预期产出</div>
+                            <p className="rounded-lg bg-emerald-glow/5 p-3 text-sm text-base-300 ring-1 ring-emerald-glow/20">
+                              {plan.expected_outputs}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-4">
+                        <div>
+                          <div className="mb-2 text-xs font-medium text-base-400">审核决策</div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {decisionButtons.map(d => {
+                              const isActive = decision === d.key
+                              return (
+                                <button
+                                  key={d.key}
+                                  onClick={() => setDecision(d.key)}
+                                  className={`rounded-lg p-2.5 ring-1 transition ${
+                                    isActive
+                                      ? `${d.bg} ${d.color} ${d.ring}`
+                                      : 'bg-base-850/50 text-base-400 ring-base-700 hover:bg-base-850'
+                                  }`}
+                                >
+                                  <svg className="mx-auto mb-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d={d.icon} />
+                                  </svg>
+                                  <div className="text-xs">{d.label}</div>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="mb-2 text-xs font-medium text-base-400">审核意见</div>
+                          <textarea
+                            value={comment}
+                            onChange={e => setComment(e.target.value)}
+                            className="w-full rounded-lg bg-base-850 px-3 py-2 text-sm text-base-100 ring-1 ring-base-700 focus:ring-2 focus:ring-amber-glow/50 focus:outline-none"
+                            rows={3}
+                            placeholder={decision === 'revise' ? '输入修改建议...' : '可选...'}
+                          />
+                        </div>
+
+                        <button
+                          onClick={() => handleSubmit(plan.id)}
+                          disabled={mutation.isPending}
+                          className={`w-full rounded-lg px-4 py-2.5 text-sm font-medium transition disabled:opacity-40 ${
+                            decisionButtons.find(d => d.key === decision)!.btn
+                          }`}
+                        >
+                          {mutation.isPending ? '提交中...' : `确认${decisionButtons.find(d => d.key === decision)!.label}`}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

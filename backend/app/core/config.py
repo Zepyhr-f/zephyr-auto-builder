@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/hermes_orchestrator"
     hermes_base_url: str = "http://localhost:8081"
+    hermes_api_key: str = ""
+    worker_interval: int = 10
 
 
 @lru_cache
