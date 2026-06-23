@@ -3,43 +3,39 @@ import { Link } from 'react-router-dom'
 import { api, type SystemComponent } from '../api/client'
 
 const statusColorMap: Record<string, string> = {
-  New: 'text-sky-glow',
-  Planning: 'text-amber-glow',
-  PendingApproval: 'text-amber-soft',
-  Approved: 'text-emerald-glow',
-  Executing: 'text-violet-glow',
-  Succeeded: 'text-emerald-glow',
-  Failed: 'text-rose-glow',
-  Rejected: 'text-rose-glow',
+  New: 'text-[var(--color-status-new)]',
+  Planning: 'text-[var(--color-status-plan)]',
+  PendingApproval: 'text-[var(--color-status-review)]',
+  Approved: 'text-[var(--color-status-approved)]',
+  Executing: 'text-[var(--color-status-exec)]',
+  Succeeded: 'text-[var(--color-status-done)]',
+  Failed: 'text-[var(--color-status-fail)]',
+  Rejected: 'text-[var(--color-status-fail)]',
+}
+
+const compColors: Record<string, { bg: string; text: string; dot: string }> = {
+  orchestrator: { bg: 'bg-[var(--color-status-new)]/8', text: 'text-[var(--color-status-new)]', dot: 'bg-[var(--color-status-new)]' },
+  planning:     { bg: 'bg-[var(--color-status-plan)]/8', text: 'text-[var(--color-status-plan)]', dot: 'bg-[var(--color-status-plan)]' },
+  approval:     { bg: 'bg-[var(--color-status-review)]/8', text: 'text-[var(--color-status-review)]', dot: 'bg-[var(--color-status-review)]' },
+  execution:    { bg: 'bg-[var(--color-status-exec)]/8', text: 'text-[var(--color-status-exec)]', dot: 'bg-[var(--color-status-exec)]' },
 }
 
 function TopologyNode({ comp, active }: { comp: SystemComponent; active: boolean }) {
-  const colorMap: Record<string, { bg: string; ring: string; text: string; dot: string }> = {
-    orchestrator: { bg: 'bg-sky-glow/10', ring: 'ring-sky-glow/40', text: 'text-sky-glow', dot: 'bg-sky-glow' },
-    planning: { bg: 'bg-amber-glow/10', ring: 'ring-amber-glow/40', text: 'text-amber-glow', dot: 'bg-amber-glow' },
-    approval: { bg: 'bg-amber-soft/10', ring: 'ring-amber-soft/40', text: 'text-amber-soft', dot: 'bg-amber-soft' },
-    execution: { bg: 'bg-violet-glow/10', ring: 'ring-violet-glow/40', text: 'text-violet-glow', dot: 'bg-violet-glow' },
-  }
-  const c = colorMap[comp.id] || colorMap.orchestrator
-
+  const c = compColors[comp.id] || compColors.orchestrator
   return (
-    <div className={`relative rounded-xl ${c.bg} p-3 ring-1 ${c.ring} transition ${active ? 'scale-[1.02]' : 'opacity-75'}`}>
+    <div className={`relative rounded-xl border border-[var(--color-border)] ${c.bg} p-3 transition ${active ? 'scale-[1.02]' : 'opacity-75'}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <span className={`h-1.5 w-1.5 rounded-full ${c.dot} ${active ? 'animate-pulse-dot' : ''}`} style={{ color: c.dot.replace('bg-', '') }} />
-          <span className={`text-xs font-medium ${c.text}`}>{comp.name}</span>
+          <span className={`h-1.5 w-1.5 rounded-full ${c.dot} ${active ? 'animate-pulse-dot' : ''}`} />
+          <span className={`font-serif-sc text-xs font-medium ${c.text}`}>{comp.name}</span>
         </div>
-        {comp.online ? (
-          <span className="text-[10px] text-emerald-glow">在线</span>
-        ) : (
-          <span className="text-[10px] text-base-500">空闲</span>
-        )}
+        <span className="text-[10px] text-tertiary">{comp.online ? '在线' : '空闲'}</span>
       </div>
-      <div className="mt-0.5 font-mono text-[10px] text-base-500">{comp.desc}</div>
+      <div className="mt-0.5 font-mono text-[10px] text-tertiary">{comp.desc}</div>
       <div className="mt-2 flex flex-wrap gap-1">
         {Object.entries(comp.metrics).map(([k, v]) => (
-          <span key={k} className="rounded bg-base-950/40 px-1 py-0.5 text-[10px] text-base-300">
-            {k}: <span className="font-mono font-medium text-base-100">{v}</span>
+          <span key={k} className="rounded bg-[var(--color-bg-base)] px-1 py-0.5 text-[10px] text-secondary">
+            {k}: <span className="font-mono font-medium text-primary">{v}</span>
           </span>
         ))}
       </div>
@@ -50,67 +46,53 @@ function TopologyNode({ comp, active }: { comp: SystemComponent; active: boolean
 function FlowArrow({ label, count }: { label: string; count: number }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center">
-      <div className="mb-0.5 text-[10px] text-base-500">{label}</div>
+      <div className="mb-0.5 text-[10px] text-tertiary">{label}</div>
       <div className="flex w-full items-center px-1">
-        <div className={`h-px flex-1 ${count > 0 ? 'bg-amber-glow/40' : 'bg-base-700'}`} />
+        <div className={`h-px flex-1 ${count > 0 ? 'bg-brand/40' : 'bg-[var(--color-border)]'}`} />
         {count > 0 && (
-          <span className="mx-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-glow/20 text-[9px] font-medium text-amber-glow">
+          <span className="mx-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-brand/15 text-[9px] font-medium text-brand">
             {count}
           </span>
         )}
-        <div className={`h-px flex-1 ${count > 0 ? 'bg-amber-glow/40' : 'bg-base-700'}`} />
-      </div>
-      <div className={`mt-0.5 text-[10px] ${count > 0 ? 'text-amber-glow' : 'text-base-600'}`}>
-        {count > 0 ? `${count}` : '空闲'}
+        <div className={`h-px flex-1 ${count > 0 ? 'bg-brand/40' : 'bg-[var(--color-border)]'}`} />
       </div>
     </div>
   )
 }
 
 function ComponentDetail({ comp }: { comp: SystemComponent }) {
-  const colorMap: Record<string, string> = {
-    orchestrator: 'text-sky-glow',
-    planning: 'text-amber-glow',
-    approval: 'text-amber-soft',
-    execution: 'text-violet-glow',
-  }
-  const color = colorMap[comp.id] || 'text-base-200'
-
+  const c = compColors[comp.id] || compColors.orchestrator
   return (
-    <div className="glass-panel rounded-xl p-4">
-      <div className="flex items-center justify-between border-b border-base-800 pb-2">
+    <div className="paper-card rounded-xl p-4">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-2">
         <div className="flex items-center gap-2">
-          <span className={`h-1.5 w-1.5 rounded-full ${comp.online ? 'bg-emerald-glow animate-pulse-dot' : 'bg-base-600'}`} style={{ color: comp.online ? '#10b981' : '#666' }} />
-          <h3 className={`text-xs font-medium ${color}`}>{comp.name}</h3>
+          <span className={`h-1.5 w-1.5 rounded-full ${comp.online ? c.dot : 'bg-tertiary'} ${comp.online ? 'animate-pulse-dot' : ''}`} />
+          <h3 className={`font-serif-sc text-xs font-medium ${c.text}`}>{comp.name}</h3>
         </div>
-        <span className={`text-[10px] ${comp.online ? 'text-emerald-glow' : 'text-base-500'}`}>
-          {comp.online ? '在线' : '空闲'}
-        </span>
+        <span className="text-[10px] text-tertiary">{comp.online ? '在线' : '空闲'}</span>
       </div>
 
       <div className="mt-2 grid grid-cols-2 gap-2">
         {Object.entries(comp.metrics).map(([k, v]) => (
-          <div key={k} className="rounded-lg bg-base-850/50 p-2 ring-1 ring-base-800">
-            <div className="text-[10px] text-base-500">{k}</div>
-            <div className="mt-0.5 font-mono text-sm font-bold text-base-100">{v}</div>
+          <div key={k} className="rounded-lg border border-[var(--color-border-light)] bg-[var(--color-bg-base)] p-2">
+            <div className="text-[10px] text-tertiary">{k}</div>
+            <div className="mt-0.5 font-mono text-sm font-bold text-primary">{v}</div>
           </div>
         ))}
       </div>
 
       {comp.active_tasks && comp.active_tasks.length > 0 && (
         <div className="mt-2">
-          <div className="mb-1 text-[10px] text-base-400">
-            正在处理（{comp.active_tasks.length}）
-          </div>
+          <div className="mb-1 text-[10px] text-tertiary">正在处理（{comp.active_tasks.length}）</div>
           <div className="space-y-1">
             {comp.active_tasks.map(task => (
               <Link
                 key={task.id}
                 to={`/tasks/${task.id}`}
-                className="flex items-center justify-between rounded-lg bg-base-950/50 px-2 py-1.5 ring-1 ring-base-800 transition hover:ring-amber-glow/30"
+                className="flex items-center justify-between rounded-lg border border-[var(--color-border-light)] bg-[var(--color-bg-base)] px-2 py-1.5 transition hover:border-brand/30"
               >
-                <span className="truncate text-xs text-base-200">{task.title}</span>
-                <span className={`ml-2 flex-shrink-0 text-[10px] ${statusColorMap[task.status] || 'text-base-400'}`}>
+                <span className="truncate text-xs text-secondary">{task.title}</span>
+                <span className={`ml-2 flex-shrink-0 text-[10px] ${statusColorMap[task.status] || 'text-tertiary'}`}>
                   {task.status}
                 </span>
               </Link>
@@ -141,28 +123,21 @@ export function SystemPage() {
   const executionQueue = counts.Executing || 0
 
   return (
-    <div className="space-y-4">
-      {/* 网络拓扑 */}
-      <div className="glass-panel rounded-xl p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-xs font-medium text-base-200">网络拓扑</h3>
-          <div className="flex items-center gap-3 text-[10px] text-base-500">
-            <span className="flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-glow animate-pulse-dot" style={{ color: '#f59e0b' }} />
-              活跃
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-base-600" />
-              空闲
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="h-1 w-3 rounded-full bg-amber-glow/40" />
-              流向
-            </span>
-          </div>
+    <div className="space-y-5">
+      <div className="flex items-end justify-between">
+        <div>
+          <h2 className="font-playfair text-2xl font-bold text-primary">系统状态</h2>
+          <p className="mt-0.5 font-serif-sc text-xs tracking-wider text-tertiary">网络拓扑与组件运行状态</p>
         </div>
+        <span className="rounded-full bg-secondary/5 px-3 py-1 text-xs text-tertiary">
+          总任务 <span className="font-mono font-medium text-primary">{data?.total_tasks ?? 0}</span>
+        </span>
+      </div>
+
+      <div className="paper-card rounded-xl p-4">
+        <h3 className="mb-3 font-serif-sc text-xs font-medium text-secondary">网络拓扑</h3>
         {isLoading ? (
-          <div className="h-24 animate-pulse rounded-xl bg-base-850" />
+          <div className="h-24 animate-pulse rounded-xl bg-secondary/5" />
         ) : (
           <div className="flex items-stretch gap-1.5">
             {orchestrator && (
@@ -188,54 +163,45 @@ export function SystemPage() {
         )}
       </div>
 
-      {/* 组件详情 */}
       <div className="grid gap-3 lg:grid-cols-2">
         {components.map(comp => (
           <ComponentDetail key={comp.id} comp={comp} />
         ))}
       </div>
 
-      {/* 任务状态分布 */}
-      <div className="glass-panel rounded-xl p-4">
+      <div className="paper-card rounded-xl p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-xs font-medium text-base-200">任务状态分布</h3>
-          <span className="text-[10px] text-base-500">共 {data?.total_tasks ?? 0} 个</span>
+          <h3 className="font-serif-sc text-xs font-medium text-secondary">任务状态分布</h3>
+          <span className="text-[10px] text-tertiary">共 {data?.total_tasks ?? 0} 个</span>
         </div>
         {isLoading ? (
-          <div className="h-6 animate-pulse rounded-lg bg-base-850" />
+          <div className="h-6 animate-pulse rounded-lg bg-secondary/5" />
         ) : (
-          <div className="flex h-6 overflow-hidden rounded-lg">
+          <div className="flex h-6 overflow-hidden rounded-lg border border-[var(--color-border-light)]">
             {[
-              { key: 'New', color: 'bg-sky-glow' },
-              { key: 'Planning', color: 'bg-amber-glow' },
-              { key: 'PendingApproval', color: 'bg-amber-soft' },
-              { key: 'Approved', color: 'bg-emerald-glow' },
-              { key: 'Executing', color: 'bg-violet-glow' },
-              { key: 'Succeeded', color: 'bg-emerald-glow/60' },
-              { key: 'Failed', color: 'bg-rose-glow' },
-              { key: 'Rejected', color: 'bg-rose-glow/60' },
+              { key: 'New', color: 'bg-[var(--color-status-new)]' },
+              { key: 'Planning', color: 'bg-[var(--color-status-plan)]' },
+              { key: 'PendingApproval', color: 'bg-[var(--color-status-review)]' },
+              { key: 'Approved', color: 'bg-[var(--color-status-approved)]' },
+              { key: 'Executing', color: 'bg-[var(--color-status-exec)]' },
+              { key: 'Succeeded', color: 'bg-[var(--color-status-done)]' },
+              { key: 'Failed', color: 'bg-[var(--color-status-fail)]' },
+              { key: 'Rejected', color: 'bg-[var(--color-status-fail)]' },
             ].map(seg => {
               const val = counts[seg.key] || 0
               const total = data?.total_tasks || 1
               const pct = (val / total) * 100
               if (pct === 0) return null
-              return (
-                <div
-                  key={seg.key}
-                  className={`${seg.color} transition-all`}
-                  style={{ width: `${pct}%` }}
-                  title={`${seg.key}: ${val}`}
-                />
-              )
+              return <div key={seg.key} className={seg.color} style={{ width: `${pct}%` }} title={`${seg.key}: ${val}`} />
             })}
           </div>
         )}
         <div className="mt-2 flex flex-wrap gap-2">
           {Object.entries(counts).map(([status, count]) => (
             <span key={status} className="flex items-center gap-1 text-[10px]">
-              <span className={`h-1.5 w-1.5 rounded-full ${statusColorMap[status]?.replace('text-', 'bg-') || 'bg-base-500'}`} />
-              <span className="text-base-400">{status}</span>
-              <span className="font-mono font-medium text-base-100">{count}</span>
+              <span className={`h-1.5 w-1.5 rounded-full ${statusColorMap[status]?.replace('text-', 'bg-') || 'bg-tertiary'}`} />
+              <span className="text-tertiary">{status}</span>
+              <span className="font-mono font-medium text-primary">{count}</span>
             </span>
           ))}
         </div>
